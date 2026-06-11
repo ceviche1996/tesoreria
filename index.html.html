@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Tesorería Amber</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f5f4f0;--surface:#ffffff;--surface2:#f0efe8;--surface3:#e8e6de;
+  --border:#e0ddd4;--border2:#c8c5bc;
+  --text:#1a1a1a;--text2:#666;--text3:#aaa;
+  --green:#16a34a;--green-dim:#dcfce7;--green-text:#15803d;
+  --red:#dc2626;--red-dim:#fee2e2;--red-text:#b91c1c;
+  --amber:#d97706;--amber-dim:#fef3c7;
+  --blue:#2563eb;--blue-dim:#dbeafe;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;overflow:hidden}
+.shell{display:flex;flex-direction:column;height:100vh;max-width:500px;margin:0 auto}
+
+/* HEADER */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+.logo{font-size:16px;font-weight:600;letter-spacing:-0.3px}
+.logo span{color:var(--amber)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+.sync-dot.error{background:var(--red);box-shadow:0 0 6px var(--red)}
+.sync-dot.loading{background:var(--text3);box-shadow:none;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.top-right{display:flex;align-items:center;gap:10px}
+.sync-label{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
+
+/* TABS */
+.tabs{display:flex;padding:8px 12px;gap:4px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+.tab{flex:1;padding:7px 4px;font-size:12px;font-weight:500;border-radius:8px;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all 0.15s;text-align:center;font-family:'DM Sans',sans-serif}
+.tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
+
+/* SCROLLABLE CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.content::-webkit-scrollbar{width:0}
+
+/* RESUMEN */
+.resumen{padding:14px}
+.saldos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.saldo-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.saldo-card.wide{grid-column:1/-1}
+.saldo-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.saldo-value{font-size:20px;font-weight:600;letter-spacing:-0.5px}
+.status-pill{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;margin-bottom:14px}
+.status-pill.ok{background:var(--green-dim);border:1px solid #2d5a3d}
+.status-pill.error{background:var(--red-dim);border:1px solid #5a2d2d}
+.status-label{font-size:13px;font-weight:600}
+.status-label.ok{color:var(--green-text)}
+.status-label.error{color:var(--red-text)}
+.status-diff{font-size:12px;font-family:'DM Mono',monospace}
+.status-diff.ok{color:var(--green-text)}
+.status-diff.error{color:var(--red-text)}
+.hoy-title{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px}
+.mov-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.mov-info{flex:1;min-width:0}
+.mov-caja{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.06em}
+.mov-concepto{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mov-monto{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;flex-shrink:0;margin-left:8px}
+.mov-monto.pos{color:var(--green)}
+.mov-monto.neg{color:var(--red)}
+.empty-state{text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px}
+
+/* MOVIMIENTOS */
+.movimientos{padding:14px}
+.caja-section{margin-bottom:20px}
+.caja-sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.caja-sec-name{font-size:14px;font-weight:600}
+.caja-sec-saldo{font-size:13px;font-family:'DM Mono',monospace;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;border:1px solid var(--border)}
+.mov-row{display:flex;align-items:center;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:4px;gap:8px}
+.mov-row-fecha{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0;width:32px}
+.mov-row-concepto{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mov-row-monto{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;flex-shrink:0}
+.mov-row-monto.pos{color:var(--green)}
+.mov-row-monto.neg{color:var(--red)}
+.mov-row-saldo{font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);flex-shrink:0;min-width:56px;text-align:right;border-left:1px solid var(--border);padding-left:8px}
+.mov-row-del{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0}
+.mov-row-del:hover{color:var(--red)}
+.no-movs{font-size:12px;color:var(--text3);padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:center}
+.add-proj-row{display:flex;gap:6px;margin-bottom:20px}
+.add-proj-row input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.add-proj-row input:focus{border-color:var(--border2)}
+.add-proj-row button{padding:9px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.add-mov-form{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
+.add-mov-form input{flex:1;min-width:65px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.add-mov-form input:focus{border-color:var(--border2)}
+.add-mov-form button{padding:7px 12px;background:var(--text);border:none;border-radius:8px;color:var(--bg);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
+
+/* CAJA FUERTE */
+.fuerte{padding:14px}
+.fuerte-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.fuerte-card-title{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px}
+.fuerte-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.fuerte-row:last-child{margin-bottom:0}
+.fuerte-row label{font-size:13px;color:var(--text2);flex:1}
+.fuerte-row input{width:90px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-size:14px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;text-align:right;outline:none}
+.fuerte-row input:focus{border-color:var(--amber)}
+.fuerte-row .sub{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;width:70px;text-align:right;flex-shrink:0}
+.fuerte-total-row{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);margin-top:4px}
+.fuerte-total-label{font-size:12px;color:var(--text2)}
+.fuerte-total-value{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-0.5px}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.chat-messages::-webkit-scrollbar{width:0}
+.bubble{max-width:85%;margin-bottom:10px;animation:fadeUp 0.2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.bubble.user{margin-left:auto}
+.bubble.bot{margin-right:auto}
+.bubble-inner{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5}
+.bubble.user .bubble-inner{background:var(--amber);color:#0f0f0f;border-radius:16px 16px 4px 16px;font-weight:500}
+.bubble.bot .bubble-inner{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:16px 16px 16px 4px}
+.bubble.bot.error .bubble-inner{background:var(--red-dim);border-color:#5a2d2d;color:var(--red-text)}
+.bubble.bot.success .bubble-inner{background:var(--green-dim);border-color:#2d5a3d;color:var(--green-text)}
+.bubble-time{font-size:10px;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace}
+.bubble.user .bubble-time{text-align:right}
+.typing-bubble .bubble-inner{display:flex;gap:4px;align-items:center;padding:12px 16px}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:typingDot 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typingDot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chat-input-area{padding:10px 12px 16px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 14px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.4;transition:border 0.15s}
+.chat-input:focus{border-color:var(--border2)}
+.send-btn{width:44px;height:44px;border-radius:50%;background:var(--amber);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
+.send-btn:active{transform:scale(0.92)}
+.send-btn svg{width:18px;height:18px;fill:#0f0f0f}
+.chat-hint{font-size:11px;color:var(--text3);text-align:center;padding:6px 0 0;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top-bar">
+    <div class="logo">Tesorería <span>Amber</span></div>
+    <div class="top-right">
+      <span class="sync-label" id="sync-label">cargando...</span>
+      <div class="sync-dot loading" id="sync-dot"></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="chat">Chat IA</button>
+    <button class="tab" data-tab="resumen">Resumen</button>
+    <button class="tab" data-tab="movimientos">Movimientos</button>
+    <button class="tab" data-tab="fuerte">Caja fuerte</button>
+  </div>
+  <div class="content" id="content">
+    <div class="chat-wrap" id="chat-wrap">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input" placeholder='Ej: "Cargá $44.000 egreso en Cheeky, Pago Zipcode"' rows="1"></textarea>
+          <button class="send-btn" id="send-btn">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="chat-hint">Podés preguntar saldos, cargar movimientos o pedir el resumen del día</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkqUay-TPAwq2gbtfm9Tu1NA3-gLb9gkMZukYaWS8ypfG9ELZg32J-n9QNJ-6digQd/exec';
+const CLAUDE_URL = 'https://api.anthropic.com/v1/messages';
+const today = new Date().toISOString().split('T')[0];
+
+const DEFAULT = {
+  cajas:{'Cheeky':[],'Arcos':[],'General':[]},
+  fuerte:{fajos10k:0,fajo:0,resto:0}
+};
+let state = JSON.parse(JSON.stringify(DEFAULT));
+let currentTab = 'chat';
+let syncStatus = 'loading';
+let saveTimer = null;
+let newProject = '';
+let newMov = {};
+
+// ── SHEETS ──────────────────────────────────────────────
+async function load(){
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=load');
+    const data = JSON.parse(await res.text());
+    if(data && data.cajas) state = {...DEFAULT, ...data};
+    setSyncStatus('ok');
+  } catch(e){ setSyncStatus('error'); }
+  renderTab();
+  addBotMessage('Hola! Soy tu asistente de tesorería. Podés decirme cosas como:\n• "Cargá $27.315 ingreso en Arcos, Cuotas Singer"\n• "Egreso $44.000 en Cheeky, Pago Zipcode Marzo"\n• "¿Cuánto hay en cada caja?"\n• "Resumen de hoy"', 'bot');
+}
+
+async function save(){
+  setSyncStatus('loading');
+  try {
+    await fetch(SCRIPT_URL, {method:'POST', body:JSON.stringify({action:'save', data:{cajas:state.cajas, fuerte:state.fuerte}})});
+    setSyncStatus('ok');
+  } catch(e){ setSyncStatus('error'); }
+}
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); }
+
+function setSyncStatus(s){
+  syncStatus = s;
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if(!dot) return;
+  dot.className = 'sync-dot' + (s==='error'?' error':s==='loading'?' loading':'');
+  lbl.textContent = s==='ok'?'guardado':s==='loading'?'guardando...':'error';
+}
+
+// ── HELPERS ─────────────────────────────────────────────
+const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+const saldo = c => (state.cajas[c]||[]).reduce((a,m)=>a+m.monto,0);
+const totalCajas = () => Object.keys(state.cajas).reduce((a,c)=>a+saldo(c),0);
+const totalFuerte = () => (state.fuerte.fajos10k*10000)+Number(state.fuerte.fajo||0)+Number(state.fuerte.resto||0);
+const timeNow = () => new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+
+// ── CLAUDE AI ────────────────────────────────────────────
+async function askClaude(userMsg){
+  const cajasList = Object.keys(state.cajas).join(', ');
+  const saldosActuales = Object.keys(state.cajas).map(c=>`${c}: ${fmt(saldo(c))}`).join(', ');
+  const movHoy = Object.keys(state.cajas).flatMap(c=>(state.cajas[c]||[]).filter(m=>m.fecha===today).map(m=>`${c} - ${m.concepto}: ${fmt(m.monto)}`));
+
+  const systemPrompt = `Sos el asistente de tesorería de Amber. Tu trabajo es interpretar mensajes en lenguaje natural y devolver un JSON con la acción a ejecutar.
+
+Cajas disponibles: ${cajasList}
+Saldos actuales: ${saldosActuales}
+Movimientos de hoy: ${movHoy.length > 0 ? movHoy.join(', ') : 'ninguno'}
+Fecha de hoy: ${today}
+
+Respondé SIEMPRE con un JSON válido con esta estructura:
+{
+  "accion": "cargar_movimiento" | "consultar_saldo" | "resumen" | "ninguna",
+  "datos": {
+    "caja": "nombre exacto de la caja (solo para cargar_movimiento)",
+    "monto": número (positivo para ingreso, negativo para egreso),
+    "concepto": "descripción",
+    "fecha": "YYYY-MM-DD"
+  },
+  "respuesta": "mensaje amigable para mostrar al usuario"
+}
+
+Reglas:
+- Si el usuario dice "egreso", "gasto", "pago", "salida" → monto negativo
+- Si dice "ingreso", "entrada", "cobro", "recibí" → monto positivo
+- Si no especifica, interpretá por contexto (un pago es egreso, una cuota cobrada es ingreso)
+- El nombre de la caja debe coincidir exactamente con las disponibles (Cheeky, Arcos, General u otras)
+- Si no entendés la caja, preguntá en la respuesta y usá accion "ninguna"
+- Si pregunta saldos o resumen, usá la acción correspondiente
+- Respondé siempre en español argentino, de forma breve y directa
+- NO incluyas texto fuera del JSON`;
+
+  const res = await fetch(CLAUDE_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'x-api-key':'', 'anthropic-version':'2023-06-01'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{role:'user', content: userMsg}]
+    })
+  });
+
+  const data = await res.json();
+  const raw = data.content?.[0]?.text || '{}';
+  const clean = raw.replace(/```json|```/g,'').trim();
+  return JSON.parse(clean);
+}
+
+// ── CHAT ─────────────────────────────────────────────────
+function addBotMessage(text, type='bot', subtype=''){
+  const msgs = document.getElementById('chat-messages');
+  if(!msgs) return;
+  const div = document.createElement('div');
+  div.className = `bubble bot${subtype?' '+subtype:''}`;
+  div.innerHTML = `<div class="bubble-inner">${text.replace(/\n/g,'<br>')}</div><div class="bubble-time">${timeNow()}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function addUserMessage(text){
+  const msgs = document.getElementById('chat-messages');
+  if(!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'bubble user';
+  div.innerHTML = `<div class="bubble-inner">${text}</div><div class="bubble-time">${timeNow()}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function addTyping(){
+  const msgs = document.getElementById('chat-messages');
+  if(!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'bubble bot typing-bubble';
+  div.id = 'typing';
+  div.innerHTML = `<div class="bubble-inner"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping(){ document.getElementById('typing')?.remove(); }
+
+async function handleSend(){
+  const input = document.getElementById('chat-input');
+  const text = (input.value||'').trim();
+  if(!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  addUserMessage(text);
+  addTyping();
+
+  try {
+    const result = await askClaude(text);
+    removeTyping();
+
+    if(result.accion === 'cargar_movimiento' && result.datos?.caja && !isNaN(result.datos?.monto)){
+      const {caja, monto, concepto, fecha} = result.datos;
+      if(!state.cajas[caja]) state.cajas[caja] = [];
+      state.cajas[caja].push({fecha: fecha||today, concepto: concepto||'Sin concepto', monto: Number(monto)});
+      state.cajas[caja].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      scheduleSave();
+      addBotMessage(result.respuesta || `Listo! Cargado en ${caja}.`, 'bot', 'success');
+      if(currentTab !== 'chat') renderTab();
+    } else if(result.accion === 'consultar_saldo'){
+      const lineas = Object.keys(state.cajas).map(c=>`${c}: ${fmt(saldo(c))}`).join('\n');
+      addBotMessage(`Saldos actuales:\n${lineas}\n\nTotal cajas: ${fmt(totalCajas())}`, 'bot');
+    } else if(result.accion === 'resumen'){
+      const hoy = Object.keys(state.cajas).flatMap(c=>(state.cajas[c]||[]).filter(m=>m.fecha===today).map(m=>`${c} · ${m.concepto}: ${fmt(m.monto)}`));
+      const tC = totalCajas(), tF = totalFuerte(), ok = Math.abs(tF-tC)<1;
+      const movsTxt = hoy.length > 0 ? hoy.join('\n') : 'Sin movimientos hoy';
+      addBotMessage(`Resumen del día:\n${movsTxt}\n\nTotal cajas: ${fmt(tC)}\nCaja fuerte: ${fmt(tF)}\nEstado: ${ok?'Todo OK ✓':'Diferencia: '+fmt(tF-tC)}`, 'bot');
+    } else {
+      addBotMessage(result.respuesta || 'No entendí bien. ¿Podés ser más específico?', 'bot');
+    }
+  } catch(e){
+    removeTyping();
+    addBotMessage('Hubo un error al procesar tu mensaje. Intentá de nuevo.', 'bot', 'error');
+  }
+}
+
+// ── RENDER TABS ──────────────────────────────────────────
+function renderTab(){
+  const content = document.getElementById('content');
+  if(currentTab === 'chat'){
+    if(!document.getElementById('chat-wrap')){
+      content.innerHTML = `<div class="chat-wrap" id="chat-wrap">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder='Ej: "Cargá $44.000 egreso en Cheeky, Pago Zipcode"' rows="1"></textarea>
+            <button class="send-btn" id="send-btn"><svg viewBox="0 0 24 24" fill="#0f0f0f"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+          </div>
+          <div class="chat-hint">Podés preguntar saldos, cargar movimientos o pedir el resumen del día</div>
+        </div>
+      </div>`;
+    }
+    bindChat();
+    return;
+  }
+  if(currentTab === 'resumen') content.innerHTML = buildResumen();
+  if(currentTab === 'movimientos') content.innerHTML = buildMovimientos();
+  if(currentTab === 'fuerte') content.innerHTML = buildFuerte();
+  bindContent();
+}
+
+function buildResumen(){
+  const cajas=Object.keys(state.cajas);
+  const total=totalCajas(),fuerte=totalFuerte(),diff=fuerte-total,ok=Math.abs(diff)<1;
+  const hoy=cajas.flatMap(c=>(state.cajas[c]||[]).filter(m=>m.fecha===today).map(m=>({...m,caja:c})));
+  let h=`<div class="resumen"><div class="saldos-grid">`;
+  cajas.forEach(c=>h+=`<div class="saldo-card"><div class="saldo-label">${c}</div><div class="saldo-value">${fmt(saldo(c))}</div></div>`);
+  h+=`<div class="saldo-card wide"><div class="saldo-label">Total cajas</div><div class="saldo-value">${fmt(total)}</div></div></div>
+  <div class="status-pill ${ok?'ok':'error'}">
+    <span class="status-label ${ok?'ok':'error'}">${ok?'Todo OK ✓':'Diferencia'}</span>
+    <span class="status-diff ${ok?'ok':'error'}">${ok?'Cuadra perfecto':fmt(diff)}</span>
+  </div>`;
+  if(hoy.length>0){
+    h+=`<div class="hoy-title">Movimientos de hoy</div>`;
+    hoy.forEach(m=>h+=`<div class="mov-item"><div class="mov-info"><div class="mov-caja">${m.caja}</div><div class="mov-concepto">${m.concepto}</div></div><div class="mov-monto ${m.monto<0?'neg':'pos'}">${fmt(m.monto)}</div></div>`);
+  } else {
+    h+=`<div class="empty-state">Sin movimientos hoy</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function buildMovimientos(){
+  const cajas=Object.keys(state.cajas);
+  let h=`<div class="movimientos">
+    <div class="add-proj-row">
+      <input id="new-project-input" placeholder="Nueva caja / proyecto" value="${newProject}">
+      <button id="btn-add-proj">+ Agregar</button>
+    </div>`;
+  cajas.forEach(c=>{
+    const movs=state.cajas[c]||[];
+    const esBase=['Cheeky','Arcos','General'].includes(c);
+    const nm=newMov[c]||{fecha:today,concepto:'',monto:''};
+    h+=`<div class="caja-section"><div class="caja-sec-header">
+      <span class="caja-sec-name">${c}</span>
+      <span class="caja-sec-saldo">${fmt(saldo(c))}</span>
+    </div>`;
+    if(movs.length===0){
+      h+=`<div class="no-movs">Sin movimientos</div>`;
+    } else {
+      let acum=0;
+      movs.forEach((m,i)=>{
+        acum+=m.monto;
+        h+=`<div class="mov-row">
+          <span class="mov-row-fecha">${m.fecha.slice(5).replace('-','/')}</span>
+          <span class="mov-row-concepto">${m.concepto}</span>
+          <span class="mov-row-monto ${m.monto<0?'neg':'pos'}">${fmt(m.monto)}</span>
+          <span class="mov-row-saldo">${fmt(acum)}</span>
+          <button class="mov-row-del" data-caja="${c}" data-idx="${i}">×</button>
+        </div>`;
+      });
+    }
+    h+=`<div class="add-mov-form">
+      <input type="date" class="nm-fecha" data-caja="${c}" value="${nm.fecha}">
+      <input type="text" class="nm-concepto" data-caja="${c}" placeholder="Concepto" value="${nm.concepto}">
+      <input type="number" class="nm-monto" data-caja="${c}" placeholder="Monto (- egreso)" value="${nm.monto}" step="1">
+      <button class="btn-nm" data-caja="${c}">+ Agregar</button>
+    </div>`;
+    if(!esBase) h+=`<button class="mov-row-del" style="margin-top:6px;font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;width:100%;background:transparent;cursor:pointer" data-del-caja="${c}">Eliminar caja ${c}</button>`;
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+function buildFuerte(){
+  const f=state.fuerte,tF=totalFuerte(),tC=totalCajas(),diff=tF-tC,ok=Math.abs(diff)<1;
+  return `<div class="fuerte">
+    <div class="fuerte-card">
+      <div class="fuerte-card-title">Contenido físico</div>
+      <div class="fuerte-row">
+        <label>Fajos $10.000 <span style="font-size:11px;color:var(--text3)">(cantidad)</span></label>
+        <input type="number" id="f-10k" value="${f.fajos10k}" min="0" step="1">
+        <span class="sub">${fmt(f.fajos10k*10000)}</span>
+      </div>
+      <div class="fuerte-row">
+        <label>Fajos sueltos <span style="font-size:11px;color:var(--text3)">(monto total)</span></label>
+        <input type="number" id="f-1k" value="${f.fajo}" min="0" step="1">
+        <span class="sub">${fmt(f.fajo)}</span>
+      </div>
+      <div class="fuerte-row">
+        <label>Resto / cambio <span style="font-size:11px;color:var(--text3)">(monto total)</span></label>
+        <input type="number" id="f-resto" value="${f.resto}" min="0" step="1">
+        <span class="sub">${fmt(f.resto)}</span>
+      </div>
+      <div class="fuerte-total-row">
+        <span class="fuerte-total-label">Total caja fuerte</span>
+        <span class="fuerte-total-value">${fmt(tF)}</span>
+      </div>
+    </div>
+    <div class="status-pill ${ok?'ok':'error'}">
+      <span class="status-label ${ok?'ok':'error'}">${ok?'Todo OK ✓':'No cuadra'}</span>
+      <span class="status-diff ${ok?'ok':'error'}">${ok?'Cuadra perfecto':'Diferencia: '+fmt(diff)}</span>
+    </div>
+  </div>`;
+}
+
+function bindChat(){
+  const btn = document.getElementById('send-btn');
+  const inp = document.getElementById('chat-input');
+  if(btn) btn.onclick = handleSend;
+  if(inp){
+    inp.onkeydown = e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();} };
+    inp.oninput = function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'; };
+  }
+}
+
+function bindContent(){
+  document.querySelectorAll('.mov-row-del').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.cajas[btn.dataset.caja].splice(parseInt(btn.dataset.idx),1);
+      scheduleSave(); renderTab();
+    });
+  });
+  document.querySelectorAll('[data-del-caja]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(confirm(`¿Eliminar caja "${btn.dataset.delCaja}"?`)){ delete state.cajas[btn.dataset.delCaja]; scheduleSave(); renderTab(); }
+    });
+  });
+  document.getElementById('btn-add-proj')?.addEventListener('click',()=>{
+    const name=(document.getElementById('new-project-input')?.value||'').trim();
+    if(name&&!state.cajas[name]){state.cajas[name]=[];newProject='';scheduleSave();renderTab();}
+  });
+  document.getElementById('new-project-input')?.addEventListener('input',e=>{newProject=e.target.value;});
+
+  // formulario manual por caja
+  document.querySelectorAll('.nm-fecha,.nm-concepto,.nm-monto').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const c=inp.dataset.caja;
+      if(!newMov[c]) newMov[c]={fecha:today,concepto:'',monto:''};
+      if(inp.classList.contains('nm-fecha')) newMov[c].fecha=inp.value;
+      if(inp.classList.contains('nm-concepto')) newMov[c].concepto=inp.value;
+      if(inp.classList.contains('nm-monto')) newMov[c].monto=inp.value;
+    });
+  });
+  document.querySelectorAll('.btn-nm').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const c=btn.dataset.caja;
+      const nm=newMov[c]||{};
+      const monto=parseFloat(nm.monto);
+      if(!nm.concepto||isNaN(monto)) return;
+      if(!state.cajas[c]) state.cajas[c]=[];
+      state.cajas[c].push({fecha:nm.fecha||today,concepto:nm.concepto,monto});
+      state.cajas[c].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      newMov[c]={fecha:today,concepto:'',monto:''};
+      scheduleSave(); renderTab();
+    });
+  });
+  ['f-10k','f-1k','f-resto'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('input',e=>{
+      if(id==='f-10k') state.fuerte.fajos10k=parseFloat(e.target.value)||0;
+      if(id==='f-1k') state.fuerte.fajo=parseFloat(e.target.value)||0; // monto directo
+      if(id==='f-resto') state.fuerte.resto=parseFloat(e.target.value)||0;
+      scheduleSave(); renderTab();
+    });
+  });
+}
+
+// ── TABS NAV ─────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    renderTab();
+    if(currentTab==='chat') bindChat();
+  });
+});
+
+load();
+</script>
+</body>
+</html>
